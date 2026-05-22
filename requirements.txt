@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+requests
+pydantic
+pyjwt
+bcrypt
+python-multipart
+sqlalchemy
+google-generativeai
+python-dotenv
