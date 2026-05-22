@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutriBharat AI | Next-Gen Health Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/recipes.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --accent-primary: #10b981; 
+            --accent-secondary: #0ea5e9; 
+            --text-light: #f8fafc;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --sidebar-width: 250px;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-light); min-height: 100vh; overflow-x: hidden; background-image: radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.15), transparent 25%), radial-gradient(circle at 85% 30%, rgba(14, 165, 233, 0.15), transparent 25%); }
+        h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem; background: linear-gradient(to right, var(--accent-primary), var(--accent-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .glass-card { background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: 20px; padding: 1.5rem; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3); margin-bottom: 1.5rem; transition: transform 0.3s ease; }
+        
+        /* Layout */
+        #app-layout { display: flex; height: 100vh; display: none; }
+        .sidebar { width: var(--sidebar-width); background: rgba(0,0,0,0.4); border-right: 1px solid var(--glass-border); padding: 2rem 1rem; overflow-y: auto; }
+        .main-content { flex: 1; padding: 2rem; overflow-y: auto; }
+        
+        .sidebar-item { padding: 1rem; margin-bottom: 0.5rem; border-radius: 12px; cursor: pointer; transition: all 0.3s; opacity: 0.7; }
+        .sidebar-item:hover, .sidebar-item.active-tab { opacity: 1; background: var(--glass-bg); border-left: 4px solid var(--accent-primary); }
+        
+        /* Forms */
+        .input-group { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem; }
+        .input-row { display: flex; gap: 1rem; }
+        input, select { width: 100%; padding: 1rem; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border); border-radius: 12px; color: var(--text-light); font-size: 1rem; outline: none; }
+        button { padding: 1rem 2rem; background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary)); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
+        button:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5); }
+        button.outline { background: transparent; border: 1px solid var(--accent-primary); color: var(--accent-primary); box-shadow: none; }
+        
+        .view { display: none; animation: fadeIn 0.5s ease; }
+        .view.active { display: block; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; }
+        .grid-2 { display: grid; grid-template-columns: 1.5fr 1fr; gap: 2rem; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Auth Screen */
+        #auth-screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; overflow-y: auto;}
+        
+        /* Day plan card */
+        .day-plan-card { background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 12px; margin-bottom: 1rem; border-left: 4px solid var(--accent-primary); }
+        .day-title { font-weight: bold; color: var(--accent-primary); font-size: 1.2rem; margin-bottom: 0.5rem; }
+        
+        /* Vibrant Chart Container */
+        .chart-container { position: relative; height: 280px; width: 100%; display: flex; justify-content: center; align-items: center; filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.2)); }
+        
+        /* Water Tracker */
+        .water-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 1rem; }
+        .glass-icon { font-size: 2rem; cursor: pointer; text-align: center; opacity: 0.4; transition: all 0.3s; filter: grayscale(100%); }
+        .glass-icon.filled { opacity: 1; filter: grayscale(0%); transform: scale(1.1); animation: pop 0.3s ease; }
+        
+        @keyframes pop { 50% { transform: scale(1.3); } }
+        @keyframes coinBounce { 0% { transform: scale(1); } 50% { transform: scale(1.5); color: #f59e0b; } 100% { transform: scale(1); } }
+        .coin-anim { animation: coinBounce 0.5s ease; }
+        
+        /* Badges */
+        .badge { background: linear-gradient(135deg, #FFD700, #FFA500); padding: 2rem; border-radius: 50%; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; font-size: 3rem; margin: 0 auto; box-shadow: 0 0 30px rgba(255, 215, 0, 0.4); border: 4px solid rgba(255,255,255,0.2); }
+        .badge-silver { background: linear-gradient(135deg, #e2e8f0, #94a3b8); box-shadow: 0 0 30px rgba(226, 232, 240, 0.4); }
+        
+        /* Alerts */
+        .alert-banner { background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; border-left: 5px solid #ef4444; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+        
+        /* Voice Anim */
+        @keyframes pulseMic { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        .listening { animation: pulseMic 1.5s infinite; border-color: #ef4444 !important; color: #ef4444 !important; }
+
+        /* Report Score Circle */
+        .score-circle { width: 120px; height: 120px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: bold; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); margin: 0 auto 1rem; box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); }
+        
+        /* Symptom Card */
+        .symptom-card { background: rgba(0,0,0,0.3); border: 2px solid transparent; border-radius: 16px; padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.3s; }
+        .symptom-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.05); }
+        .symptom-card.selected { border-color: var(--accent-primary); background: rgba(16,185,129,0.1); box-shadow: 0 0 20px rgba(16,185,129,0.2); }
+        .symptom-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+
+        /* Recipe Card */
+        .recipe-card { background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 12px; overflow: hidden; margin-top: 1rem; }
+        .recipe-header { background: rgba(0,0,0,0.3); padding: 1rem; font-weight: bold; font-size: 1.2rem; }
+        .recipe-body { padding: 1rem; }
+        .recipe-body ul { margin-left: 1.5rem; margin-bottom: 1rem; color: #cbd5e1; }
+    </style>
+</head>
+<body>
+
+    <!-- Auth View -->
+    <div id="auth-screen">
+        <h1 style="text-align: center;">NutriBharat AI</h1>
+        <p style="opacity: 0.8; margin-bottom: 2rem; text-align: center;">Startup-Level Health Intelligence</p>
+        <div class="glass-card" style="width: 100%; max-width: 550px;">
+            <h2 id="authTitle" style="margin-bottom: 1rem; text-align: center;">Login</h2>
+            <div id="authError" style="color: #ef4444; margin-bottom: 1rem; text-align: center;"></div>
+            
+            <div class="input-group" id="loginForm">
+                <input type="text" id="username" placeholder="Username">
+                <input type="password" id="password" placeholder="Password">
+                
+                <div id="regExtra" style="display:none; flex-direction:column; gap:1rem;">
+                    <div class="input-row">
+                        <input type="number" id="regHeight" placeholder="Height (cm)">
+                        <input type="number" id="regWeight" placeholder="Weight (kg)">
+                    </div>
+                    <div class="input-row">
+                        <select id="regDiet">
+                            <option value="veg">Vegetarian</option>
+                            <option value="non-veg">Non-Vegetarian</option>
+                            <option value="vegan">Vegan</option>
+                        </select>
+                        <select id="regBudget">
+                            <option value="low">Budget-Friendly</option>
+                            <option value="medium">Medium Budget</option>
+                            <option value="high">Premium</option>
+                        </select>
+                    </div>
+                    <input type="text" id="regAllergies" placeholder="Allergies (e.g., Peanuts, Dairy)">
+                    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                        <input type="checkbox" id="regDiabetic" style="width:auto;">
+                        <span>I am Diabetic (Enable strict sugar monitoring)</span>
+                    </label>
+                </div>
+            </div>
+            
+            <button onclick="handleAuth()" id="authBtn" style="width: 100%;">Login</button>
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <a href="#" onclick="toggleAuthMode()" style="color: var(--accent-secondary);">Create an Account instead</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Dashboard -->
+    <div id="app-layout">
+        <div class="sidebar">
+            <h2 style="margin-bottom: 2rem; color: var(--accent-primary);">NutriBharat</h2>
+            
+            <div class="sidebar-item active-tab" onclick="switchTab('dashboard')" id="nav-dashboard">📊 Dashboard</div>
+            <div style="padding: 1rem; color: #fbbf24; font-weight: bold; font-size: 1.1rem; text-align: center; border-bottom: 1px solid var(--glass-border); margin-bottom: 1rem;">🪙 <span id="nutriCoins">0</span> NutriCoins</div>
+            <div class="sidebar-item" onclick="switchTab('deficiency')" id="nav-deficiency">🩺 Deficiency AI</div>
+            <div class="sidebar-item" onclick="switchTab('ai')" id="nav-ai">🔍 AI Scanner</div>
+            <div class="sidebar-item" onclick="switchTab('planner')" id="nav-planner">📅 Meal Planner</div>
+            <div class="sidebar-item" onclick="switchTab('sleep')" id="nav-sleep">😴 Sleep & Mood</div>
+            <div class="sidebar-item" onclick="switchTab('grocery')" id="nav-grocery">🛒 Grocery Lists</div>
+            <div class="sidebar-item" onclick="switchTab('streaks')" id="nav-streaks">🏆 Achievements</div>
+            <div class="sidebar-item" onclick="switchTab('regional')" id="nav-regional">🗺️ Regional Recipes</div>
+            <div class="sidebar-item" onclick="switchTab('festival')" id="nav-festival">🎉 Festival Mode</div>
+            
+            <div class="sidebar-item" onclick="logout()" style="margin-top: 2rem; color: #ef4444;">🚪 Logout</div>
+        </div>
+        
+        <div class="main-content">
+            <div id="diabeticBanner" class="alert-banner" style="display:none;">
+                <strong>Diabetic Mode Active:</strong> Ensure your daily carbohydrate intake comes from complex, low-GI sources like Millets.
+            </div>
+            
+            <!-- 1. Dashboard -->
+            <div id="dashboardTab" class="view active">
+                <h1>Welcome, <span id="userNameDisplay"></span></h1>
+                
+                <div id="healthAlertsContainer" style="margin-top:1rem; display:none;"></div>
+
+                <!-- Daily AI Health Report -->
+                <div class="glass-card" style="margin-top: 2rem; border-color: var(--accent-secondary);">
+                    <h2>Daily AI Health Report</h2>
+                    <div class="grid-2" style="margin-top: 1rem; align-items:center;">
+                        <div style="text-align:center;">
+                            <div class="score-circle" id="overallScore">--</div>
+                            <p style="opacity:0.8;">Overall Health Score</p>
+                        </div>
+                        <div>
+                            <ul style="list-style:none; line-height:2;">
+                                <li><strong>Nutrient Balance:</strong> <span id="reportBalance">--</span></li>
+                                <li><strong>Meal Consistency:</strong> <span id="reportConsistency">--</span></li>
+                                <li><strong>Hydration:</strong> <span id="reportHydration">--</span></li>
+                            </ul>
+                            <div class="alert-banner" style="margin-top:1rem; background:rgba(16,185,129,0.1); border-color:#10b981; color:#f8fafc;" id="reportSuggestion">
+                                Generating AI insights...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid-2" style="margin-top: 2rem;">
+                    <div class="glass-card">
+                        <h2>Daily Macros</h2>
+                        <div class="chart-container"><canvas id="macroChart"></canvas></div>
+                    </div>
+                    <div>
+                        <div class="glass-card" style="margin-bottom: 1.5rem;">
+                            <h2>💧 Hydration Tracker</h2>
+                            <p style="opacity:0.8; font-size:0.9rem;">Goal: 8 Glasses (2 Liters)</p>
+                            <div class="water-grid" id="waterGrid"></div>
+                        </div>
+                        <div class="glass-card">
+                            <h2>Today's Diary</h2>
+                            <div id="diaryList" style="margin-top: 1rem; max-height: 180px; overflow-y: auto;">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Deficiency removed to separate tab -->
+            </div>
+
+            <!-- 1.5 Deficiency AI -->
+            <div id="deficiencyTab" class="view">
+                <h1>Visual Deficiency AI</h1>
+                <p style="opacity:0.8; font-size:1rem; margin-bottom:2rem;">Tap on the symptoms you are experiencing to dynamically predict deficiencies. <span style="color:#ef4444;">(Not a medical diagnosis)</span></p>
+                <div class="grid-3" id="symptomGrid">
+                    <div class="symptom-card" onclick="toggleSymptom(this, 'fatigue')">
+                        <div class="symptom-icon">🥱</div>
+                        <h3>Fatigue</h3>
+                    </div>
+                    <div class="symptom-card" onclick="toggleSymptom(this, 'hair fall')">
+                        <div class="symptom-icon">💇‍♀️</div>
+                        <h3>Hair Fall</h3>
+                    </div>
+                    <div class="symptom-card" onclick="toggleSymptom(this, 'muscle cramps')">
+                        <div class="symptom-icon">🦵</div>
+                        <h3>Muscle Cramps</h3>
+                    </div>
+                    <div class="symptom-card" onclick="toggleSymptom(this, 'pale skin')">
+                        <div class="symptom-icon">🤍</div>
+                        <h3>Pale Skin</h3>
+                    </div>
+                    <div class="symptom-card" onclick="toggleSymptom(this, 'low energy')">
+                        <div class="symptom-icon">🔋</div>
+                        <h3>Low Energy</h3>
+                    </div>
+                    <div class="symptom-card" onclick="toggleSymptom(this, 'bone pain')">
+                        <div class="symptom-icon">🦴</div>
+                        <h3>Bone Pain</h3>
+                    </div>
+                    <div class="symptom-card" onclick="toggleSymptom(this, 'brittle nails')">
+                        <div class="symptom-icon">💅</div>
+                        <h3>Brittle Nails</h3>
+                    </div>
+                    <div class="symptom-card" onclick="toggleSymptom(this, 'dizziness')">
+                        <div class="symptom-icon">😵</div>
+                        <h3>Dizziness</h3>
+                    </div>
+                    <div class="symptom-card" onclick="toggleSymptom(this, 'joint pain')">
+                        <div class="symptom-icon">🤕</div>
+                        <h3>Joint Pain</h3>
+                    </div>
+                </div>
+                <button onclick="analyzeSymptoms()" style="margin-top:2rem; width:100%;">Generate Clinical AI Prediction</button>
+                <div id="deficiencyResults" style="margin-top:2rem;"></div>
+            </div>
+
+            <!-- 2. AI Scanner, Barcode & Voice Logger -->
+            <div id="aiTab" class="view">
+                <h1>AI Voice, Text, Vision & Barcode Scanner</h1>
+                
+                <!-- Voice & Text -->
+                <div class="glass-card" style="margin-top: 2rem;">
+                    <h2>Log a Meal</h2>
+                    <p style="opacity:0.8; margin-bottom:1rem;">Type, use your microphone, or upload a photo to log food naturally.</p>
+                    <div class="input-group" style="flex-direction: row; align-items:center;">
+                        <input type="text" id="aiMealInput" placeholder="e.g. 'I had 2 dosa and filter coffee'" style="flex:1;">
+                        <button id="micBtn" onclick="startVoiceLogging()" class="outline" style="border-radius: 50%; padding: 1rem;" title="Voice">🎤</button>
+                        <button class="outline" style="border-radius: 50%; padding: 1rem; position:relative;" title="Upload Photo">
+                            📷<input type="file" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;" onchange="parseVisionMeal(this)">
+                        </button>
+                        <button onclick="parseAIMeal()">Analyze</button>
+                    </div>
+                    <div id="aiMealResults" style="margin-top: 1.5rem;"></div>
+                </div>
+
+                <!-- Barcode Scanner -->
+                <div class="glass-card">
+                    <h2>Barcode / QR Food Scanner</h2>
+                    <p style="opacity:0.8; margin-bottom:1rem;">Enter a barcode from a packaged food to analyze its health rating and processed level.</p>
+                    <div class="input-group" style="flex-direction: row;">
+                        <input type="text" id="barcodeInput" placeholder="e.g. 8901030...">
+                        <button onclick="scanBarcode()">Scan Code</button>
+                    </div>
+                    <div id="barcodeResults" style="margin-top: 1rem;"></div>
+                </div>
+
+                <!-- Swap Engine -->
+                <div class="glass-card">
+                    <h2>Swadeshi Swap Engine</h2>
+                    <div class="input-group" style="flex-direction: row; margin-top:1rem;">
+                        <input type="text" id="swapInput" placeholder="Premium food (e.g. Quinoa, Avocado)...">
+                        <button onclick="findSwap()">Find Swap</button>
+                    </div>
+                    <div id="swapResults" style="margin-top: 1rem;"></div>
+                </div>
+            </div>
+
+            <!-- 3. Meal Planner & Pantry AI -->
+            <div id="plannerTab" class="view">
+                <h1>AI Meal Planner & Pantry</h1>
+                <div class="grid-2" style="margin-top: 2rem;">
+                    <div class="glass-card">
+                        <h2>7-Day Indian Diet</h2>
+                        <button onclick="generateMealPlan()" style="width: 100%; margin-top:1rem;">Generate Weekly Plan</button>
+                        <div id="planResults" style="margin-top: 2rem; max-height:400px; overflow-y:auto;"></div>
+                    </div>
+                    <div class="glass-card">
+                        <h2>Pantry AI Recipe Generator</h2>
+                        <p style="opacity:0.8; font-size:0.9rem; margin-bottom:1rem;">Tell AI what ingredients you have, and we'll invent a healthy recipe.</p>
+                        <div class="input-group">
+                            <input type="text" id="pantryIngredients" placeholder="e.g. Eggs, spinach, tomatoes">
+                            <input type="number" id="pantryCalories" placeholder="Target Calories (e.g. 400)">
+                            <button onclick="generatePantryRecipe()">Generate Custom Recipe</button>
+                        </div>
+                        <div id="pantryResults" style="margin-top:1rem;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Sleep & Mood -->
+            <div id="sleepTab" class="view">
+                <h1>Sleep & Mood Tracking</h1>
+                <div class="glass-card" style="margin-top: 2rem;">
+                    <div class="input-group">
+                        <label>Hours Slept:</label>
+                        <input type="number" id="sleepInput" placeholder="e.g. 8">
+                        <label>Today's Mood:</label>
+                        <select id="moodInput">
+                            <option value="Happy">Happy 😊</option>
+                            <option value="Tired">Tired 😫</option>
+                            <option value="Stressed">Stressed 😰</option>
+                        </select>
+                        <button onclick="logSleepMood()">Save Tracking</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Grocery Lists -->
+            <div id="groceryTab" class="view">
+                <h1>AI Grocery List Generator</h1>
+                <div class="glass-card" style="margin-top: 2rem;">
+                    <p style="opacity: 0.8; margin-bottom:1rem;">Generate a weekly Indian grocery list based on your diet preferences.</p>
+                    <button onclick="generateGrocery()">Generate Generative AI List</button>
+                    <div id="groceryResults" style="margin-top: 2rem; white-space: pre-wrap; line-height: 1.8;"></div>
+                </div>
+            </div>
+
+            <!-- 7. Streaks -->
+            <div id="streaksTab" class="view">
+                <h1>Fitness Achievements</h1>
+                <div class="grid-3" style="margin-top: 2rem;">
+                    <div class="glass-card" style="text-align: center;">
+                        <div class="badge badge-silver">🔥</div>
+                        <h2 style="margin-top:1rem;">3 Day Streak</h2>
+                        <p style="opacity:0.7; margin-bottom:0.5rem;">Consistent Logger.</p>
+                        <div style="background: rgba(16,185,129,0.2); color:#10b981; padding:0.5rem; border-radius:8px;">Reward: Golden Dashboard Theme</div>
+                    </div>
+                    <div class="glass-card" style="text-align: center;">
+                        <div class="badge">🏆</div>
+                        <h2 style="margin-top:1rem;">7 Day Streak</h2>
+                        <p style="opacity:0.7; margin-bottom:0.5rem;">Nutrition Master.</p>
+                        <div style="background: rgba(251,191,36,0.2); color:#fbbf24; padding:0.5rem; border-radius:8px;">Reward: +500 NutriCoins</div>
+                    </div>
+                    <div class="glass-card" style="text-align: center; opacity: 0.4;">
+                        <div class="badge" style="background: linear-gradient(135deg, #a855f7, #ec4899); box-shadow: 0 0 30px rgba(168, 85, 247, 0.4);">💎</div>
+                        <h2 style="margin-top:1rem;">30 Day Streak</h2>
+                        <p style="opacity:0.7; margin-bottom:0.5rem;">Locked. Dedicated Nutritionist.</p>
+                        <div style="background: rgba(168,85,247,0.2); color:#c084fc; padding:0.5rem; border-radius:8px;">Reward: Free Dietitian Consultation</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8. Regional Diet -->
+            <div id="regionalTab" class="view">
+                <h1>Regional Interactive Recipes</h1>
+                <div class="glass-card" style="margin-top: 2rem;">
+                    <div class="input-group">
+                        <label>Select your region to view tailored healthy recipes:</label>
+                        <select id="regionSelect" onchange="updateRegionalSuggestion()">
+                            <option value="south">South India</option>
+                            <option value="north">North India</option>
+                            <option value="east">East India</option>
+                            <option value="west">West India</option>
+                        </select>
+                        <div id="regionMsg"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 9. Festival Mode -->
+            <div id="festivalTab" class="view">
+                <h1>Festival Balance Mode</h1>
+                <div class="glass-card" style="margin-top: 2rem;">
+                    <div class="input-group">
+                        <label>Select Upcoming Festival for Healthy Recipes:</label>
+                        <select id="festivalSelect" onchange="updateFestivalSuggestion()">
+                            <option value="diwali">Diwali</option>
+                            <option value="holi">Holi</option>
+                            <option value="eid">Eid</option>
+                            <option value="pongal">Pongal / Makar Sankranti</option>
+                        </select>
+                        <div id="festivalMsg"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let isLogin = true;
+        let chartInstance = null;
+        let waterCount = 0;
+
+        // Init
+        window.onload = async () => {
+            if (localStorage.getItem('token')) {
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('app-layout').style.display = 'flex';
+                document.getElementById('userNameDisplay').innerText = localStorage.getItem('username');
+                
+                try {
+                    const res = await authFetch('/api/auth/me');
+                    if (res.ok) {
+                        const profile = await res.json();
+                        if (profile.medical_conditions && profile.medical_conditions.includes("diabetic")) {
+                            document.getElementById('diabeticBanner').style.display = 'block';
+                        }
+                    }
+                    fetchDeficiencies();
+                } catch(e) {}
+                
+                initDashboard();
+                initWater();
+                document.getElementById('nutriCoins').innerText = localStorage.getItem('nutriCoins') || '0';
+                updateRegionalSuggestion();
+                updateFestivalSuggestion();
+            }
+        };
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active-tab'));
+            document.getElementById(tabId + 'Tab').classList.add('active');
+            document.getElementById('nav-' + tabId).classList.add('active-tab');
+            if(tabId === 'dashboard') initDashboard();
+        }
+
+        function toggleAuthMode() {
+            isLogin = !isLogin;
+            document.getElementById('authTitle').innerText = isLogin ? 'Login' : 'Register';
+            document.getElementById('regExtra').style.display = isLogin ? 'none' : 'flex';
+        }
+
+        async function handleAuth() {
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            try {
+                if (isLogin) {
+                    const fd = new URLSearchParams(); fd.append('username', u); fd.append('password', p);
+                    const res = await fetch('/api/auth/login', { method: 'POST', body: fd });
+                    if(!res.ok) throw new Error("Invalid login");
+                    const data = await res.json();
+                    localStorage.setItem('token', data.access_token);
+                    localStorage.setItem('username', u);
+                    window.location.reload();
+                } else {
+                    const isDiabetic = document.getElementById('regDiabetic').checked;
+                    const meds = isDiabetic ? ["diabetic"] : [];
+                    const h = parseFloat(document.getElementById('regHeight').value) || 170;
+                    const w = parseFloat(document.getElementById('regWeight').value) || 70;
+                    const diet = document.getElementById('regDiet').value;
+                    const budget = document.getElementById('regBudget').value;
+                    const allergies = document.getElementById('regAllergies').value.split(',').map(s=>s.trim());
+                    
+                    const payload = { username: u, password: p, age: 25, goal: "maintenance", height_cm: h, weight_kg: w, diet_preference: diet, budget_preference: budget, allergies: allergies, medical_conditions: meds };
+                    const res = await fetch('/api/auth/register', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+                    if(!res.ok) throw new Error("Registration failed");
+                    alert("Registered! Please login.");
+                    toggleAuthMode();
+                }
+            } catch (e) { document.getElementById('authError').innerText = e.message; }
+        }
+
+        function logout() { localStorage.clear(); window.location.reload(); }
+
+        async function authFetch(url, options = {}) {
+            options.headers = { ...options.headers, 'Authorization': `Bearer ${localStorage.getItem('token')}` };
+            const res = await fetch(url, options);
+            if (res.status === 401) logout();
+            return res;
+        }
+
+        // --- Water Tracker ---
+        function initWater() {
+            waterCount = parseInt(localStorage.getItem('water_count') || '0');
+            renderWaterGrid();
+        }
+        function renderWaterGrid() {
+            const grid = document.getElementById('waterGrid');
+            grid.innerHTML = '';
+            for(let i=1; i<=8; i++) {
+                grid.innerHTML += `<div class="glass-icon ${i <= waterCount ? 'filled' : ''}" onclick="toggleWater(${i})">🥛</div>`;
+            }
+        }
+        async function toggleWater(index) {
+            waterCount = index === waterCount ? index - 1 : index; 
+            localStorage.setItem('water_count', waterCount);
+            renderWaterGrid();
+            await authFetch('/api/dashboard/log', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ food_name: 'Water Glass', calories: 0, protein: 0, carbs: 0, fats: 0, water_ml: 250 }) });
+            addCoins(10);
+            initDashboard();
+        }
+
+        // --- Dashboard Fetching ---
+        async function fetchDeficiencies() {
+            const res = await authFetch('/api/dashboard/deficiencies');
+            if(res.ok) {
+                const data = await res.json();
+                const container = document.getElementById('healthAlertsContainer');
+                if(data.alerts && data.alerts.length > 0) {
+                    container.style.display = 'block';
+                    container.innerHTML = data.alerts.map(a => `<div class="alert-banner" style="background:rgba(234, 179, 8, 0.1); border-color:#eab308;">${a}</div>`).join('');
+                }
+            }
+        }
+
+        async function initDashboard() {
+            const div = document.getElementById('diaryList');
+            try {
+                // Fetch Logs
+                const res = await authFetch('/api/dashboard/logs');
+                const data = await res.json();
+                let html = "", tC=0, tP=0, tCb=0, tF=0;
+                data.logs.forEach(l => {
+                    if (l.food_name) {
+                        tC += l.calories; tP += l.protein; tCb += l.carbs; tF += l.fats;
+                        html += `<div style="background:rgba(255,255,255,0.05); padding:1rem; margin-bottom:1rem; border-radius:12px; border-left: 3px solid var(--accent-secondary);">
+                            <strong>${l.food_name}</strong><br>
+                            ⚡ ${l.calories}kcal | 🍗 ${l.protein}g | 🍚 ${l.carbs}g | 🧀 ${l.fats}g
+                        </div>`;
+                    }
+                });
+                div.innerHTML = html || "No logs yet.";
+                updateChart(tC, tP, tCb, tF);
+                
+                // Fetch AI Health Report
+                const repRes = await authFetch('/api/dashboard/report');
+                if (repRes.ok) {
+                    const repData = await repRes.json();
+                    document.getElementById('overallScore').innerText = repData.report.overall_score;
+                    document.getElementById('reportBalance').innerText = repData.report.nutrient_balance;
+                    document.getElementById('reportConsistency').innerText = repData.report.meal_consistency;
+                    document.getElementById('reportHydration').innerText = repData.report.hydration_score;
+                    document.getElementById('reportSuggestion').innerText = repData.report.suggestions;
+                }
+            } catch (e) { div.innerHTML = "Error loading dashboard."; }
+        }
+
+        function updateChart(cals, p, c, f) {
+            const ctx = document.getElementById('macroChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+            const gP = ctx.createLinearGradient(0, 0, 0, 400); gP.addColorStop(0, '#10b981'); gP.addColorStop(1, '#059669');
+            const gC = ctx.createLinearGradient(0, 0, 0, 400); gC.addColorStop(0, '#0ea5e9'); gC.addColorStop(1, '#0284c7');
+            const gF = ctx.createLinearGradient(0, 0, 0, 400); gF.addColorStop(0, '#f97316'); gF.addColorStop(1, '#ea580c');
+            Chart.defaults.color = '#f8fafc';
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Protein (g)', 'Carbs (g)', 'Fats (g)'],
+                    datasets: [{ data: [p, c, f], backgroundColor: [gP, gC, gF], borderWidth: 0, hoverOffset: 10 }]
+                },
+                options: { 
+                    responsive: true, maintainAspectRatio: false, cutout: '75%',
+                    animation: { animateScale: true, animateRotate: true, duration: 1500 },
+                    plugins: {
+                        title: { display: true, text: `${cals} kcal`, color: '#f8fafc', font: {size: 24, weight: 'bold'}, padding: 20 },
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        // --- Symptom Checker AI ---
+        let selectedSymptomsList = [];
+        function toggleSymptom(element, symptom) {
+            element.classList.toggle('selected');
+            if(selectedSymptomsList.includes(symptom)) {
+                selectedSymptomsList = selectedSymptomsList.filter(s => s !== symptom);
+            } else {
+                selectedSymptomsList.push(symptom);
+            }
+        }
+
+        async function analyzeSymptoms() {
+            const symptoms = selectedSymptomsList;
+            if(symptoms.length === 0) return;
+            
+            const resDiv = document.getElementById('deficiencyResults');
+            resDiv.innerHTML = "Consulting AI...";
+            try {
+                const res = await authFetch('/api/dashboard/symptoms', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({symptoms}) });
+                const data = await res.json();
+                resDiv.innerHTML = `
+                <div class="alert-banner" style="background:rgba(14,165,233,0.1); border-color:var(--accent-secondary);">
+                    <strong>Predicted Deficiency:</strong> ${data.deficiency} <br>
+                    <strong>Confidence:</strong> ${data.confidence} <br><br>
+                    <strong>Recommended Foods:</strong> ${data.recommended_foods.join(', ')} <br>
+                    <p style="margin-top:0.5rem; opacity:0.8;">${data.suggestions}</p>
+                </div>`;
+            } catch(e) { resDiv.innerHTML = "Analysis failed."; }
+        }
+
+        // --- Scanner Features ---
+        function startVoiceLogging() {
+            if (!('webkitSpeechRecognition' in window)) {
+                alert("Voice recognition not supported in this browser.");
+                return;
+            }
+            const btn = document.getElementById('micBtn');
+            btn.classList.add('listening');
+            document.getElementById('aiMealResults').innerHTML = "Listening...";
+            
+            const recognition = new webkitSpeechRecognition();
+            recognition.onresult = function(event) {
+                btn.classList.remove('listening');
+                document.getElementById('aiMealInput').value = event.results[0][0].transcript;
+                parseAIMeal();
+            };
+            recognition.onerror = function() {
+                btn.classList.remove('listening');
+                document.getElementById('aiMealResults').innerHTML = "<span style='color:#ef4444;'>Microphone error. Try typing.</span>";
+            };
+            recognition.start();
+        }
+
+        async function scanBarcode() {
+            const code = document.getElementById('barcodeInput').value;
+            if(!code) return;
+            const resDiv = document.getElementById('barcodeResults');
+            resDiv.innerHTML = "Fetching product data...";
+            try {
+                const res = await authFetch(`/api/food/barcode/${code}`);
+                const data = await res.json();
+                resDiv.innerHTML = `
+                <div class="glass-card" style="padding:1rem;">
+                    <div style="font-size:1.2rem; font-weight:bold; color:var(--accent-secondary);">${data.food_name}</div>
+                    <div style="margin-bottom:0.5rem;">Health Rating: <strong>${data.health_rating}</strong></div>
+                    <div style="color:${data.high_sugar ? '#ef4444' : '#10b981'};">Processed Level: ${data.processed_level} ${data.high_sugar ? '(High Sugar!)' : ''}</div>
+                    <hr style="border-color:var(--glass-border); margin:1rem 0;">
+                    <div><strong>Macros:</strong> ${data.calories} kcal | ${data.protein}g protein</div>
+                    <div style="margin-top:0.5rem; color:var(--accent-primary);"><strong>Healthier Alternatives:</strong> ${data.alternatives.join(', ')}</div>
+                </div>`;
+            } catch(e) { resDiv.innerHTML = "Barcode lookup failed."; }
+        }
+
+        async function parseVisionMeal(input) {
+            if(input.files && input.files[0]) {
+                const resDiv = document.getElementById('aiMealResults');
+                resDiv.innerHTML = "Analyzing photo with AI Vision...";
+                const fd = new FormData();
+                fd.append("file", input.files[0]);
+                try {
+                    const res = await authFetch(`/api/food/vision`, { method: 'POST', body: fd });
+                    const data = await res.json();
+                    renderScannerResults(data.results);
+                } catch (e) { resDiv.innerHTML = "Vision AI failed."; }
+            }
+        }
+
+        async function parseAIMeal() {
+            const q = document.getElementById('aiMealInput').value;
+            if(!q) return;
+            document.getElementById('aiMealResults').innerHTML = "Analyzing with AI...";
+            try {
+                const res = await authFetch(`/api/food/search?query=${encodeURIComponent(q)}`);
+                const data = await res.json();
+                renderScannerResults(data.results);
+            } catch (e) { document.getElementById('aiMealResults').innerHTML = "Error parsing."; }
+        }
+        
+        function renderScannerResults(results) {
+            const resDiv = document.getElementById('aiMealResults');
+            resDiv.innerHTML = "";
+            results.forEach(f => {
+                const cleanObj = JSON.stringify(f).replace(/"/g, '&quot;');
+                resDiv.innerHTML += `
+                <div class="glass-card" style="padding:1rem;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
+                        <strong>${f.food_name}</strong>
+                        <button onclick="logToDB('${cleanObj}')">Log to Dashboard</button>
+                    </div>
+                    ⚡ ${f.calories}kcal | 🍗 ${f.protein}g | 🍚 ${f.carbs}g | 🧀 ${f.fats}g
+                </div>`;
+            });
+        }
+
+        async function logToDB(foodStr) {
+            await authFetch('/api/dashboard/log', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: foodStr });
+            alert("Logged to your Dashboard! +50 NutriCoins");
+            addCoins(50);
+            initDashboard();
+        }
+
+        async function findSwap() {
+            const q = document.getElementById('swapInput').value;
+            const resDiv = document.getElementById('swapResults');
+            resDiv.innerHTML = "Searching AI swap engine...";
+            try {
+                const res = await fetch(`/api/food/swap?target=${encodeURIComponent(q)}`);
+                const data = await res.json();
+                resDiv.innerHTML = `
+                <div style="background:rgba(16,185,129,0.1); padding:1rem; border-radius:12px; border:1px solid var(--accent-primary);">
+                    <strong>Indian Swap:</strong> ${data.swap.swap_food} <br>
+                    ⚡ ${data.swap.swap_macros.calories_100g}kcal | 🍗 ${data.swap.swap_macros.protein_100g}g
+                </div>`;
+            } catch(e) { resDiv.innerHTML = "Failed to find swap."; }
+        }
+
+        // --- Meal Planner & Pantry AI ---
+        async function generateMealPlan() {
+            document.getElementById('planResults').innerHTML = "AI is building your 7-day plan...";
+            try {
+                const res = await authFetch('/api/planner/generate');
+                const data = await res.json();
+                let html = "";
+                ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].forEach(day => {
+                    if(data.plan[day]) {
+                        html += `
+                        <div class="day-plan-card">
+                            <div class="day-title">${day}</div>
+                            <strong>Breakfast:</strong> ${data.plan[day].breakfast} <br>
+                            <strong>Lunch:</strong> ${data.plan[day].lunch} <br>
+                            <strong>Dinner:</strong> ${data.plan[day].dinner} <br>
+                        </div>`;
+                    }
+                });
+                document.getElementById('planResults').innerHTML = html;
+            } catch(e) { document.getElementById('planResults').innerHTML = "Failed to generate plan."; }
+        }
+
+        async function generatePantryRecipe() {
+            const ings = document.getElementById('pantryIngredients').value;
+            const cals = document.getElementById('pantryCalories').value || 400;
+            if(!ings) return;
+            const div = document.getElementById('pantryResults');
+            div.innerHTML = "Cooking up a recipe...";
+            try {
+                const payload = { ingredients: ings, target_calories: parseInt(cals) };
+                const res = await authFetch('/api/food/recipe', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+                const r = (await res.json()).recipe;
+                div.innerHTML = `
+                <div class="recipe-card">
+                    <div class="recipe-header">${r.title} <span style="float:right; font-size:0.9rem; font-weight:normal;">⚡ ${r.calories} | ⏱️ ${r.prep_time}</span></div>
+                    <div class="recipe-body">
+                        <strong>Ingredients:</strong><ul>${r.ingredients.map(i => `<li>${i}</li>`).join('')}</ul>
+                        <strong>Instructions:</strong><ol style="margin-left: 1.5rem;">${r.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+                    </div>
+                </div>`;
+            } catch(e) { div.innerHTML = "Failed to generate recipe."; }
+        }
+
+        // --- Generics ---
+        async function logSleepMood() {
+            const sleep = document.getElementById('sleepInput').value;
+            const mood = document.getElementById('moodInput').value;
+            await authFetch('/api/dashboard/log', { 
+                method: 'POST', headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ food_name: `Tracked Sleep & Mood (${mood})`, calories: 0, protein: 0, carbs: 0, fats: 0, sleep_hours: parseFloat(sleep)||0, mood: mood })
+            });
+            alert("Sleep & Mood Logged!");
+            initDashboard();
+        }
+
+        async function generateGrocery() {
+            document.getElementById('groceryResults').innerHTML = "AI is generating your weekly grocery list based on your diet, region, and budget...";
+            try {
+                const res = await authFetch('/api/planner/grocery');
+                const data = await res.json();
+                document.getElementById('groceryResults').innerHTML = "<ul>" + data.groceries.map(item => `<li>${item}</li>`).join('') + "</ul>";
+            } catch(e) { document.getElementById('groceryResults').innerHTML = "Failed to generate AI Grocery list."; }
+        }
+
+        function addCoins(amount) {
+            let coins = parseInt(localStorage.getItem('nutriCoins') || '0');
+            coins += amount;
+            localStorage.setItem('nutriCoins', coins);
+            const coinEl = document.getElementById('nutriCoins');
+            coinEl.innerText = coins;
+            coinEl.classList.remove('coin-anim');
+            void coinEl.offsetWidth; // trigger reflow
+            coinEl.classList.add('coin-anim');
+        }
+        
+        function updateRegionalSuggestion() {
+            if (typeof AI_RECIPES === 'undefined') return;
+            document.getElementById('regionMsg').innerHTML = AI_RECIPES[document.getElementById('regionSelect').value].map(r => `
+                <div class="recipe-card">
+                    <div class="recipe-header">${r.title}</div>
+                    <div class="recipe-body">
+                        <strong>Ingredients:</strong><ul>${r.ings.map(i => `<li>${i}</li>`).join('')}</ul>
+                        <strong>Instructions:</strong><ol style="margin-left: 1.5rem;">${r.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+                    </div>
+                </div>`).join('');
+        }
+        
+        function updateFestivalSuggestion() {
+            if (typeof AI_RECIPES === 'undefined') return;
+            document.getElementById('festivalMsg').innerHTML = AI_RECIPES[document.getElementById('festivalSelect').value].map(r => `
+                <div class="recipe-card">
+                    <div class="recipe-header">${r.title}</div>
+                    <div class="recipe-body">
+                        <strong>Ingredients:</strong><ul>${r.ings.map(i => `<li>${i}</li>`).join('')}</ul>
+                        <strong>Instructions:</strong><ol style="margin-left: 1.5rem;">${r.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+                    </div>
+                </div>`).join('');
+        }
+    </script>
+</body>
+</html>
